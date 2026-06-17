@@ -77,7 +77,7 @@ fi
 # Step 3: Filter TABLE_LIST to include only existing tables
 DELETE_ORDER=()
 for table in "${TABLE_LIST[@]}"; do
-  if echo "$AVAILABLE_TABLES" | grep -qw "$table"; then
+  if echo "$AVAILABLE_TABLES" | grep -qiw "$table"; then
     DELETE_ORDER+=("$table")
   fi
 done
@@ -86,9 +86,9 @@ echo "Starting data deletion process..."
 
 # Step 4: Iterate through each tenant and execute delete queries
 while IFS=',' read -r TENANT_ID ORG_UUID; do
-  # Trim spaces
-  TENANT_ID=$(echo "$TENANT_ID" | xargs)
-  ORG_UUID=$(echo "$ORG_UUID" | xargs)
+  # Trim and sanitize TENANT_ID, ORG_UUID
+  TENANT_ID=$(echo "$TENANT_ID" | xargs | sed 's/[^a-zA-Z0-9-]//g')
+  ORG_UUID=$(echo "$ORG_UUID" | xargs | sed 's/[^a-zA-Z0-9-]//g')
 
   if [[ -n "$TENANT_ID" && -n "$ORG_UUID" ]]; then
     echo "Processing TENANT_ID=$TENANT_ID, ORG_UUID=$ORG_UUID"

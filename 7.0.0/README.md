@@ -1,7 +1,6 @@
 # B2B Deleted Organizations Resource Cleanup Script - Documentation
 
-This document provides detailed instructions on setting up and executing the database cleanup script. The script is designed to handle shared and identity databases in H2, MSSQL, or MySQL. It supports configurations for multiple databases as arrays, allowing flexible setups such as clustering.
-
+This document provides detailed instructions on setting up and executing the database cleanup script. The script is designed to handle shared and identity databases in H2, MSSQL, MySQL or PostgreSQL. It supports configurations for multiple databases as arrays, allowing flexible setups such as clustering.
 
 ## Prerequisites
 
@@ -9,6 +8,7 @@ This document provides detailed instructions on setting up and executing the dat
    - H2
    - MSSQL
    - MySQL
+   - PostgreSQL
 
 2. **Required Tools**:
    - Bash shell

@@ -13,6 +13,12 @@ LOG_DIR="$8"
 # Export PostgreSQL password to suppress password warnings
 export PGPASSWORD="$DB_PASSWORD"
 
+cleanup() {
+  unset PGPASSWORD
+}
+
+trap cleanup EXIT
+
 SUMMARY_FILE="$LOG_DIR/um_tenant_deletion_summary.log"
 FAILED_LOG_DIR="$LOG_DIR/failed_deletions"
 
@@ -63,6 +69,13 @@ fi
 
 echo "Starting UM_TENANT deletion process..."
 for TENANT_ID in $COMMON_TENANTS; do
+  TENANT_ID=$(echo "$TENANT_ID" | xargs)
+
+  if [[ ! "$TENANT_ID" =~ ^[0-9]+$ ]]; then
+    echo "Skipping invalid TENANT_ID=$TENANT_ID"
+    continue
+  fi
+
   echo "Processing TENANT_ID=$TENANT_ID"
 
   # Generate the delete procedure
@@ -81,8 +94,5 @@ for TENANT_ID in $COMMON_TENANTS; do
     echo "Failed to delete UM_TENANT entry for TENANT_ID=$TENANT_ID. Check log: $FAILED_LOG" | tee -a "$SUMMARY_FILE"
   fi
 done
-
-# Unset PGPASSWORD to avoid leaving it in the environment
-unset PGPASSWORD
 
 echo "UM_TENANT deletion process completed. Summary available at $SUMMARY_FILE."

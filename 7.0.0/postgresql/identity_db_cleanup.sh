@@ -12,6 +12,12 @@ LOG_DIR="$7"
 # Export PostgreSQL password to suppress password warnings
 export PGPASSWORD="$DB_PASSWORD"
 
+cleanup() {
+  unset PGPASSWORD
+}
+
+trap cleanup EXIT
+
 SUMMARY_FILE="$LOG_DIR/summary.log"
 SUCCESSFUL_DELETIONS_FILE="$LOG_DIR/successful_deletions.csv"
 
@@ -80,7 +86,7 @@ fi
 # Filter TABLE_LIST to include only tables that exist in AVAILABLE_TABLES
 DELETE_ORDER=()
 for table in "${TABLE_LIST[@]}"; do
-  if echo "$AVAILABLE_TABLES" | grep -qw "$table"; then
+  if echo "$AVAILABLE_TABLES" | grep -qiw "$table"; then
     DELETE_ORDER+=("$table")
   fi
 done
@@ -108,7 +114,7 @@ while IFS=',' read -r TENANT_ID ORG_UUID; do
 
     # Execute the delete procedure
     echo "Executing deletion procedure on identity database for TENANT_ID=$TENANT_ID..."
-    psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -U "$DB_USER" -c "$DELETE_PROCEDURE" -q > /dev/null 2>&1
+    PSQL_ERROR=$(psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -U "$DB_USER" -c "$DELETE_PROCEDURE" -q 2>&1 > /dev/null)
 
     # Check if the execution was successful
     if [[ $? -eq 0 ]]; then
@@ -117,6 +123,9 @@ while IFS=',' read -r TENANT_ID ORG_UUID; do
     else
       FAILED_LOG="$LOG_DIR/failed_tenant_${TENANT_ID}.log"
       echo "$DELETE_PROCEDURE" > "$FAILED_LOG"
+      if [[ -n "$PSQL_ERROR" ]]; then
+        echo "$PSQL_ERROR" >> "$FAILED_LOG"
+      fi
       echo "Failed to process tenant ID $TENANT_ID with org ID $ORG_UUID. Check log: $FAILED_LOG" | tee -a "$SUMMARY_FILE"
     fi
   else
@@ -125,6 +134,3 @@ while IFS=',' read -r TENANT_ID ORG_UUID; do
 done < "$EXPORT_FILE"
 
 echo "Data deletion process completed. Summary available at $SUMMARY_FILE."
-
-# Unset PGPASSWORD to avoid leaving it in the environment
-unset PGPASSWORD

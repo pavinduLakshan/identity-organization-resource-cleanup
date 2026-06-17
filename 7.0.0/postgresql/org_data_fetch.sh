@@ -11,6 +11,13 @@ EXPORT_FILE="$7"
 
 export PGPASSWORD="$DB_PASSWORD"
 
+cleanup() {
+  unset PGPASSWORD
+  [[ -n "$RAW_OUTPUT" ]] && rm -f "$RAW_OUTPUT"
+}
+
+trap cleanup EXIT
+
 # Display configuration
 echo "DB_SERVER: ${DB_HOST}:${DB_PORT}"
 echo "DB_NAME: $DB_NAME"
@@ -22,7 +29,7 @@ FETCH_QUERY="
 SELECT UM_TENANT.UM_ID AS TENANT_ID, UM_TENANT.UM_ORG_UUID AS ORG_UUID
 FROM UM_TENANT
 LEFT JOIN UM_ORG ON UM_TENANT.UM_ORG_UUID = UM_ORG.UM_ID
-WHERE UM_TENANT.UM_ACTIVE = 0 AND UM_ORG.UM_ID IS NULL
+WHERE UM_TENANT.UM_ACTIVE = FALSE AND UM_ORG.UM_ID IS NULL
 ORDER BY UM_TENANT.UM_CREATED_DATE DESC
 LIMIT $BATCH_SIZE;
 "
@@ -30,7 +37,7 @@ LIMIT $BATCH_SIZE;
 echo "Fetching tenant IDs and organization UUIDs from PostgreSQL database..."
 
 # Temporary file to store raw output
-RAW_OUTPUT="/tmp/raw_output.log"
+RAW_OUTPUT=$(mktemp)
 
 # Execute the query and capture output in a raw format
 psql -h "$DB_HOST" -p "$DB_PORT" -d "$DB_NAME" -U "$DB_USER" -c "$FETCH_QUERY" -t -A -F $'\t' 2>error.log > "$RAW_OUTPUT"
@@ -42,10 +49,10 @@ if [[ $? -ne 0 ]]; then
   exit 1
 fi
 
-> "$EXPORT_FILE" # Clear previous data.
+: > "$EXPORT_FILE" # Clear previous data.
 if [[ ! -s "$RAW_OUTPUT" ]]; then
   echo "Query executed successfully but no data returned. Exiting with success."
-  > "$EXPORT_FILE"
+  : > "$EXPORT_FILE"
   exit 0
 fi
 
@@ -61,16 +68,10 @@ while IFS=$'\t' read -r TENANT_ID ORG_UUID; do
   echo "$TENANT_ID,$ORG_UUID" >> "$EXPORT_FILE"
 done < "$RAW_OUTPUT"
 
-# Clean up temporary raw output file
-rm -f "$RAW_OUTPUT"
-
 # Check if the export file contains more than just the header
-if [[ $(wc -l < "$EXPORT_FILE") -le 1 ]]; then
+if [[ $(wc -l < "$EXPORT_FILE") -lt 1 ]]; then
   echo "Query executed successfully but no data returned. Exiting with success."
   exit 0
 else
   echo "Data exported to $EXPORT_FILE successfully in CSV format."
 fi
-
-# Unset PGPASSWORD to avoid leaving it in the environment.
-unset PGPASSWORD
