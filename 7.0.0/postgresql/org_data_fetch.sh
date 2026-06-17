@@ -24,6 +24,11 @@ echo "DB_NAME: $DB_NAME"
 echo "BATCH_SIZE: $BATCH_SIZE"
 echo "EXPORT_FILE: $EXPORT_FILE"
 
+if [[ ! "$BATCH_SIZE" =~ ^[1-9][0-9]*$ ]]; then
+  echo "Invalid BATCH_SIZE: $BATCH_SIZE. It must be a positive integer."
+  exit 1
+fi
+
 # Query to fetch N deleted organizations
 FETCH_QUERY="
 SELECT UM_TENANT.UM_ID AS TENANT_ID, UM_TENANT.UM_ORG_UUID AS ORG_UUID

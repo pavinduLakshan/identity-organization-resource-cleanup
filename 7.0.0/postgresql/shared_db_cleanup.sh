@@ -12,6 +12,12 @@ LOG_DIR="$7"
 # Export PostgreSQL password to suppress password warnings
 export PGPASSWORD="$DB_PASSWORD"
 
+cleanup() {
+  unset PGPASSWORD
+}
+
+trap cleanup EXIT
+
 SUMMARY_FILE="$LOG_DIR/summary.log"
 SUCCESSFUL_DELETIONS_FILE="$LOG_DIR/successful_deletions.csv"
 
@@ -126,6 +132,3 @@ while IFS=',' read -r TENANT_ID ORG_UUID; do
 done < "$EXPORT_FILE"
 
 echo "Data deletion process completed. Summary available at $SUMMARY_FILE."
-
-# Unset PGPASSWORD to avoid leaving it in the environment
-unset PGPASSWORD

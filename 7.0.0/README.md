@@ -24,9 +24,9 @@ The script allows for specifying shared and identity databases through separate 
 
 ### Configuration Section
 ```bash
-# Supported DB types: h2, mssql, mysql
-SHARED_DB_TYPE="mysql"     # can be h2, mssql, or mysql
-IDENTITY_DB_TYPE="mysql"   # can be h2, mssql, or mysql
+# Supported DB types: h2, mssql, mysql, postgresql
+SHARED_DB_TYPE="mysql"     # can be h2, mssql, mysql, or postgresql
+IDENTITY_DB_TYPE="mysql"   # can be h2, mssql, mysql, or postgresql
 
 # Shared database configurations
 <Refer below sections on how to fill this information based on the DB type>
@@ -43,7 +43,7 @@ H2_JAR_PATH="/path/to/h2-2.2.220.jar" # This is only needed if the the database 
 
 ### Explanation of Variables
 
-- **SHARED_DB_TYPE/IDENTITY_DB_TYPE**: Define the database type (`h2`, `mssql`, `mysql`).
+- **SHARED_DB_TYPE/IDENTITY_DB_TYPE**: Define the database type (`h2`, `mssql`, `mysql`, `postgresql`).
 - **SHARED_DB_* / IDENTITY_DB_***: Define respective hosts, ports, database names, users, passwords, and log directories as arrays. Each index corresponds to one database instance.
 - **BATCH_SIZE**: Number of organizations processed in each batch.
 - **BATCH_WAIT_TIME**: Wait time between batch executions (in milliseconds).
@@ -180,6 +180,60 @@ brew services start mysql
      ```
 
 3. Update `H2_JAR_PATH` (only for h2) with the correct file paths.
+
+---
+
+#### PostgreSQL
+---
+
+1. First you need to install psql client
+- **Linux:**
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install postgresql-client -y
+```
+- **Mac:**
+```bash
+brew install libpq
+brew link --force libpq
+```
+
+2. Then update the DB configs in the `cleanup.sh` as follows,
+
+- **Single Instance:**
+    ```bash
+    # Shared database configurations
+    SHARED_DB_HOSTS=("127.0.0.1")
+    SHARED_DB_PORTS=("5432")
+    SHARED_DB_NAMES=("wso2shared_db")
+    SHARED_DB_USERS=("postgres")
+    SHARED_DB_PASSWORDS=("yourpassword")
+    SHARED_DB_LOG_DIRS=("path/to/log")
+
+    # Identity database configurations
+    IDENTITY_DB_HOSTS=("127.0.0.1")
+    IDENTITY_DB_PORTS=("5432")
+    IDENTITY_DB_NAMES=("wso2identity_db")
+    IDENTITY_DB_USERS=("postgres")
+    IDENTITY_DB_PASSWORDS=("yourpassword")
+    IDENTITY_DB_LOG_DIRS=("path/to/log")
+    ```
+- **Multiple Instances:** (Refer this if you have setup the database according to [Separate Databases for Clustering](https://is.docs.wso2.com/en/latest/deploy/set-up-separate-databases-for-clustering/))
+    ```bash
+    SHARED_DB_HOSTS=("127.0.0.1" "127.0.0.1")
+    SHARED_DB_PORTS=("5432" "5432")
+    SHARED_DB_NAMES=("wso2shared_db_1" "wso2shared_db_2")
+    SHARED_DB_USERS=("postgres" "postgres")
+    SHARED_DB_PASSWORDS=("yourpassword1" "yourpassword2")
+    SHARED_DB_LOG_DIRS=("/var/log/shared1" "/var/log/shared2") # If there are 2 DBs, then 2 paths are needed for logging
+
+    IDENTITY_DB_HOSTS=("127.0.0.1" "127.0.0.1")
+    IDENTITY_DB_PORTS=("5432" "5432")
+    IDENTITY_DB_NAMES=("wso2identity_db_1" "wso2identity_db_2")
+    IDENTITY_DB_USERS=("postgres" "postgres")
+    IDENTITY_DB_PASSWORDS=("yourpassword" "yourpassword")
+    IDENTITY_DB_LOG_DIRS=("path/to/log_1" "path/to/log_2")
+    ```
 
 ---
 
